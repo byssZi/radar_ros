@@ -1,0 +1,71 @@
+object_can0_id0_topic: "/ars_40X/objects_front"
+object_can0_id1_topic: "/ars_40X/objects_back"
+object_can1_id0_topic: "/ars_40X/objects_left"
+object_can1_id1_topic: "/ars_40X/objects_right"
+
+cluster_can0_id0_topic: "/ars_40X/clusters_front"
+cluster_can0_id1_topic: "/ars_40X/clusters_back"
+cluster_can1_id0_topic: "/ars_40X/clusters_left"
+cluster_can1_id1_topic: "/ars_40X/clusters_right"
+
+radar_filter_distance_front: 100.0
+radar_output_object_topic_front: "/ars_40X/filter/objects_front"
+radar_visualize_object_topic_front: "/visualize_objects_front"
+radar_visualize_velocity_topic_front: "/visualize_velocity_front"
+radar_output_cluster_topic_front: "/ars_40X/filter/clusters_front"
+radar_visualize_cluster_topic_front: "/visualize_clusters_front"
+
+radar_filter_distance_left: 70.0
+radar_output_object_topic_left: "/ars_40X/filter/objects_left"
+radar_visualize_object_topic_left: "/visualize_objects_left"
+radar_visualize_velocity_topic_left: "/visualize_velocity_left"
+radar_output_cluster_topic_left: "/ars_40X/filter/clusters_left"
+radar_visualize_cluster_topic_left: "/visualize_clusters_left"
+
+radar_filter_distance_right: 70.0
+radar_output_object_topic_right: "/ars_40X/filter/objects_right"
+radar_visualize_object_topic_right: "/visualize_objects_right"
+radar_visualize_velocity_topic_right: "/visualize_velocity_right"
+radar_output_cluster_topic_right: "/ars_40X/filter/clusters_right"
+radar_visualize_cluster_topic_right: "/visualize_clusters_right"
+
+radar_filter_distance_back: 70.0
+radar_output_object_topic_back: "/ars_40X/filter/objects_back"
+radar_visualize_object_topic_back: "/visualize_objects_back"
+radar_visualize_velocity_topic_back: "/visualize_velocity_back"
+radar_output_cluster_topic_back: "/ars_40X/filter/clusters_back"
+radar_visualize_cluster_topic_back: "/visualize_clusters_back"
+
+radar_calib_result_path: "/home/nvidia/radarSense_ws/src/radar_ros/data_radar.txt"
+radar_calib_visualize_front: "/visualize_objects_front"
+radar_calib_visualize_left: "/visualize_objects_left"
+radar_calib_visualize_right: "/visualize_objects_right"
+radar_calib_visualize_back: "/visualize_objects_back"
+radar:
+
+    RT_front: [-0.0291995,-0.999574,0,0.3,
+0.999574,-0.0291995,0,13.93,
+0,0,1,-2.4,
+0,0,0,1]
+
+       
+
+    RT_left: [-0.699862,-0.714279,0,-0.5,
+0.714279,-0.699862,0,13.55,
+0,0,1,-2.4,
+0,0,0,1]
+
+     
+
+    RT_right: [0.696707,-0.717356,0,0.1,
+0.717356,0.696707,0,13.55,
+0,0,1,-2.4,
+0,0,0,1]
+
+
+    RT_back: [1,0,0,0,
+          0,1,0,0,
+          0,0,1,0,
+          0,0,0,1]
+
+odom_topic: "/autoware_tracker/Odom"
