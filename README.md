@@ -1,19 +1,20 @@
+# 说明
 
-# Radar setup
+此工程为解析大陆ARS408毫米波雷达ros驱动，用于前后左右安装四个方向大陆ARS408或SRR308毫米波雷达，前，后毫米波雷达连接can0，分别配置id0和id1，左，右毫米波雷达连接can1，分别配置id0和id1，实际使用时按需修改！！
 
-There is a command called cansend, that belongs to can-utils, used for sending configuration messages to the radar. Here are some messages proposed, but other messages can be sent (watch the manual ARS40X_Technical_Documentation_V 1.8_18.10.2017 inside documentation folder).
+# Radar 准备工作
 
-Installation of can-utils
 ```bash
 sudo apt-get install can-utils
-candump can0 // Watch the raw data received once the peak CAN bus is installed and connected to Radar
+candump can0 // 观察can总线是否收到毫米波雷达数据
 ```
 
-Configuration messages to choose between cluster detection or object detection
+配置工作模式为cluster或object模式
 ```bash
 cansend can0 200#F8000000089C0000 // Objects detection with all extended properties
 cansend can0 200#F8000000109C0000 // Clusters detection with all extended properties
 ```
+配置id
 ```bash
 cansend can0 200#8200000001800000 // Objects id 1
 cansend can0 200#8200000002800000 // Objects id 2
@@ -24,18 +25,16 @@ cansend can0 200#8200000006800000 // Objects id 6
 cansend can0 200#8200000007800000 // Objects id 7
 ```
 
-Configuration messages for applying different filters.
+其它配置，根据协议确定
 ```bash
 cansend can0 202#8C0000012C // Maximum distance of objects detected 30 meters
 cansend can0 202#AE06800FFF // Minimum value of object RCS -10 dBm2
 cansend can0 202#C600030007 // Minimum value of objects probability of existence 75%
 ```
-
-Other option to configure the radar is to modify the values of configuration_vars.h inside the header folder of socketcan brige. Please remember that is necessary to build the package again in order to save the values chosen in the configuration header file.
-
-Start ros package
+# 使用方法
 ```bash
 source devel/setup.bash
 roslaunch radar_ros run.launch calib_radar:=true //if need calib Radar, both cluster and object are ok
 ```
-
+# 致谢
+部分源码改编自 https://github.com/Project-MANAS/ars_40X 工程
