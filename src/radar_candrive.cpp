@@ -58,7 +58,7 @@ int radar_candrive::Can0Init(){
         return -1;
     }
 
-    strcpy(ifr1.ifr_name, "can1" );
+    strcpy(ifr1.ifr_name, "can0" );
     ioctl(can_fd_1, SIOCGIFINDEX, &ifr1); //指定 can0 设备
     addr1.can_family = AF_CAN;
     addr1.can_ifindex = ifr1.ifr_ifindex;
@@ -109,11 +109,11 @@ int radar_candrive::Can1Init(){
         return -1;
     }
 
-    strcpy(ifr2.ifr_name, "can0" );
-    ioctl(can_fd_2, SIOCGIFINDEX, &ifr2); //指定 can0 设备
+    strcpy(ifr2.ifr_name, "can1" );
+    ioctl(can_fd_2, SIOCGIFINDEX, &ifr2); //指定 can1 设备
     addr2.can_family = AF_CAN;
     addr2.can_ifindex = ifr2.ifr_ifindex;
-    int bind_res = bind(can_fd_2, (struct sockaddr *)&addr2, sizeof(addr2)); //将套接字与 can0 绑定
+    int bind_res = bind(can_fd_2, (struct sockaddr *)&addr2, sizeof(addr2)); //将套接字与 can1 绑定
     if(bind_res < 0){
         std::cout<<"bind can1 error!\n"<<std::endl;
         return -1;
