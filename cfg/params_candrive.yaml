@@ -1,19 +1,19 @@
-object_can0_id0_topic: "/ars_40X/objects_front"
-object_can0_id1_topic: "/ars_40X/objects_back"
-object_can1_id0_topic: "/ars_40X/objects_left"
-object_can1_id1_topic: "/ars_40X/objects_right"
+object_can0_id0_topic: "/ars_40X/objects_front" #解析毫米波雷达object模式数据
+object_can0_id1_topic: "/ars_40X/objects_back" 
+object_can1_id0_topic: "/ars_40X/objects_left" 
+object_can1_id1_topic: "/ars_40X/objects_right" 
 
-cluster_can0_id0_topic: "/ars_40X/clusters_front"
+cluster_can0_id0_topic: "/ars_40X/clusters_front" #解析毫米波雷达cluster模式数据
 cluster_can0_id1_topic: "/ars_40X/clusters_back"
 cluster_can1_id0_topic: "/ars_40X/clusters_left"
 cluster_can1_id1_topic: "/ars_40X/clusters_right"
 
-radar_filter_distance_front: 100.0
-radar_output_object_topic_front: "/ars_40X/filter/objects_front"
-radar_visualize_object_topic_front: "/visualize_objects_front"
-radar_visualize_velocity_topic_front: "/visualize_velocity_front"
-radar_output_cluster_topic_front: "/ars_40X/filter/clusters_front"
-radar_visualize_cluster_topic_front: "/visualize_clusters_front"
+radar_filter_distance_front: 100.0 #根据距离滤波
+radar_output_object_topic_front: "/ars_40X/filter/objects_front" #滤波并且根据标定矩阵旋转过后的毫米波雷达object话题
+radar_visualize_object_topic_front: "/visualize_objects_front" #滤波并且根据标定矩阵旋转过后的毫米波雷达object可视化话题
+radar_visualize_velocity_topic_front: "/visualize_velocity_front" #滤波并且根据标定矩阵旋转过后的毫米波雷达速度可视化话题
+radar_output_cluster_topic_front: "/ars_40X/filter/clusters_front" #滤波并且根据标定矩阵旋转过后的毫米波雷达cluster话题
+radar_visualize_cluster_topic_front: "/visualize_clusters_front"  #滤波并且根据标定矩阵旋转过后的毫米波雷达cluster可视化话题
 
 radar_filter_distance_left: 70.0
 radar_output_object_topic_left: "/ars_40X/filter/objects_left"
@@ -36,11 +36,11 @@ radar_visualize_velocity_topic_back: "/visualize_velocity_back"
 radar_output_cluster_topic_back: "/ars_40X/filter/clusters_back"
 radar_visualize_cluster_topic_back: "/visualize_clusters_back"
 
-radar_calib_result_path: "/home/nvidia/radarSense_ws/src/radar_ros/data_radar.txt"
-radar_calib_visualize_front: "/visualize_objects_front"
-radar_calib_visualize_left: "/visualize_objects_left"
-radar_calib_visualize_right: "/visualize_objects_right"
-radar_calib_visualize_back: "/visualize_objects_back"
+radar_calib_result_path: "/home/nvidia/radarSense_ws/src/radar_ros/data_radar.txt" #标定文件保存路径
+radar_calib_visualize_front: "/visualize_objects_front" #用于标定的毫米波雷达可视化话题（如果毫米波工作在object下，则为/visualize_objects_front，cluster模式下则为/visualize_clusters_front）
+radar_calib_visualize_left: "/visualize_objects_left" 
+radar_calib_visualize_right: "/visualize_objects_right" 
+radar_calib_visualize_back: "/visualize_objects_back" 
 radar:
 
     RT_front: [-0.0291995,-0.999574,0,0.3,
@@ -68,4 +68,4 @@ radar:
           0,0,1,0,
           0,0,0,1]
 
-odom_topic: "/autoware_tracker/Odom"
+odom_topic: "/autoware_tracker/Odom" #惯导话题，用于给前向毫米波雷达通过can总线发送数据

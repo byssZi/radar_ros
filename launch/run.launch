@@ -1,10 +1,13 @@
 <launch>
   <arg name="calib_radar" default="false"/>
   
+  
   <rosparam file="$(find radar_ros)/cfg/params_candrive.yaml" command="load" />
+  <node pkg="radar_ros" type="radar_ros_node" name="radar_candrive" output="screen">
+  </node>
   <node pkg="radar_ros" type="radar_filter_node" name="radar_filter" output="screen">
   </node>
-  <node pkg="radar_ros" type="radar_combine_node" name="radar_combine" output="screen">
+   <node pkg="radar_ros" type="radar_combine_node" name="radar_combine" output="screen">
   </node>
   
   <group if="$(arg calib_radar)">
