@@ -1,7 +1,7 @@
 #include "radar_ros/radar_filter.h"
 
 
-radar_ros::ObjectList filter::filter_calib_object(const radar_ros::ObjectList::ConstPtr& object_list, Eigen::Matrix4d RT, double distance){
+radar_ros::ObjectList filter::filter_calib_object(const radar_ros::ObjectList::ConstPtr& object_list, Eigen::Matrix4d RT, double distance, int gear_location, double velocity){
     radar_ros::ObjectList object_list_new;
     radar_ros::ObjectList object_list_pub;
     object_list_new.header = object_list->header;
@@ -93,10 +93,19 @@ radar_ros::ObjectList filter::filter_calib_object(const radar_ros::ObjectList::C
         VR(1,0) = RT(1,0);  VR(1,1) = RT(1,1);  VR(1,2) = RT(1,2);
         VR(2,0) = RT(2,0);  VR(2,1) = RT(2,1);  VR(2,2) = RT(2,2);
         VY = VR*VX;
-        object.relative_velocity.twist.linear.x = VY[0];
-        object.relative_velocity.twist.linear.y = VY[1];
-        object.relative_velocity.twist.linear.z = VY[2];
-
+        if (gear_location == 7) {//倒挡
+          object.relative_velocity.twist.linear.x = VY[0];
+          object.relative_velocity.twist.linear.y = VY[1] - velocity; //坐标系为右前上，车速为y轴方向;
+          object.relative_velocity.twist.linear.z = VY[2];
+        } else if (gear_location == 0) {//空挡
+          object.relative_velocity.twist.linear.x = VY[0];
+          object.relative_velocity.twist.linear.y = VY[1];
+          object.relative_velocity.twist.linear.z = VY[2];
+        } else {//前进档
+          object.relative_velocity.twist.linear.x = VY[0];
+          object.relative_velocity.twist.linear.y = VY[1] + velocity; //坐标系为右前上，车速为y轴方向;;
+          object.relative_velocity.twist.linear.z = VY[2];
+        }
 
         q_odom_curr_tmp.x() = object.position.pose.orientation.x;
         q_odom_curr_tmp.y() = object.position.pose.orientation.y;
@@ -204,7 +213,7 @@ radar_ros::ObjectList filter::filter_calib_object(const radar_ros::ObjectList::C
   return object_list_pub;
 }
 
-radar_ros::ClusterList filter::filter_calib_cluster(const radar_ros::ClusterList::ConstPtr& cluster_list, Eigen::Matrix4d RT, double distance){
+radar_ros::ClusterList filter::filter_calib_cluster(const radar_ros::ClusterList::ConstPtr& cluster_list, Eigen::Matrix4d RT, double distance, int gear_location, double velocity){
     radar_ros::ClusterList cluster_list_pub;
     cluster_list_pub.header = cluster_list->header;
     Eigen::Vector4d X;
@@ -232,10 +241,19 @@ radar_ros::ClusterList filter::filter_calib_cluster(const radar_ros::ClusterList
       VR(1,0) = RT(1,0);  VR(1,1) = RT(1,1);  VR(1,2) = RT(1,2);
       VR(2,0) = RT(2,0);  VR(2,1) = RT(2,1);  VR(2,2) = RT(2,2);
       VY = VR*VX;
-      cluster.relative_velocity.twist.linear.x = VY[0];
-      cluster.relative_velocity.twist.linear.y = VY[1];
-      cluster.relative_velocity.twist.linear.z = VY[2];
-
+      if (gear_location == 7) {//倒挡
+        cluster.relative_velocity.twist.linear.x = VY[0];
+        cluster.relative_velocity.twist.linear.y = VY[1] - velocity; //坐标系为右前上，车速为y轴方向;
+        cluster.relative_velocity.twist.linear.z = VY[2];
+      } else if (gear_location == 0) {//空挡
+        cluster.relative_velocity.twist.linear.x = VY[0];
+        cluster.relative_velocity.twist.linear.y = VY[1];
+        cluster.relative_velocity.twist.linear.z = VY[2];
+      } else {//前进档
+        cluster.relative_velocity.twist.linear.x = VY[0];
+        cluster.relative_velocity.twist.linear.y = VY[1] + velocity; //坐标系为右前上，车速为y轴方向;;
+        cluster.relative_velocity.twist.linear.z = VY[2];
+      }
       if(hypot(cluster.position.pose.position.x, cluster.position.pose.position.y)<distance){
         cluster_list_pub.clusters.push_back(cluster);
       }

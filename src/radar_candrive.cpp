@@ -3,7 +3,7 @@
 
 using namespace std;
 
-radar_candrive::radar_candrive(){
+radar_candrive::radar_candrive() : gear_location(0), velocity(0), angular_z(0){
     nh.param<std::string>("object_can0_id0_topic",radar_candrive::object_can0_id0_topic,"/ars_40X/objects_front");
     nh.param<std::string>("object_can0_id1_topic",radar_candrive::object_can0_id1_topic,"/ars_40X/objects_back");//接收毫米波雷达话题
     nh.param<std::string>("object_can1_id0_topic",radar_candrive::object_can1_id0_topic,"/ars_40X/objects_left");
@@ -14,7 +14,6 @@ radar_candrive::radar_candrive(){
     nh.param<std::string>("cluster_can1_id0_topic",radar_candrive::cluster_can1_id0_topic,"/ars_40X/clusters_left");
     nh.param<std::string>("cluster_can1_id1_topic",radar_candrive::cluster_can1_id1_topic,"/ars_40X/clusters_right");
 
-    nh.param<std::string>("odom_topic",radar_candrive::odom_topic,"/autoware_tracker/Odom");//接收自车信息，输入前向毫米波雷达
     int can0, can1;
     while(can0 =Can0Init()  < 0){
 	    if (can0 =Can0Init() > 0){
@@ -163,24 +162,35 @@ void radar_candrive::run(){
     std::thread t2(std::bind(&radar_candrive::RecvCanMsgThread2, this));/*创建CAN接收线程*/
     t2.detach();/*分离线程*/
 
-    odom_sub = nh.subscribe(odom_topic,1,&radar_candrive::odom_callback, this);
+    odom_sub = nh.subscribe("/odomData",1,&radar_candrive::odom_callback, this);//接收自车惯导信息，输入前向毫米波雷达
+    chassis_sub = nh.subscribe("/chassis",1,&radar_candrive::chassis_callback, this);//接收自车底盘信息，输入前向毫米波雷达
+    timer_ = nh.createTimer(ros::Duration(0.1), &radar_candrive::timerCallback, this);
 
 }
 
-void radar_candrive::odom_callback(const nav_msgs::Odometry::ConstPtr &odom){
-    double speed = odom->twist.twist.linear.x;
-    // 将速度值转换为整数形式
-    int radar_speed = static_cast<int>(std::abs(speed) / 0.02);
+void radar_candrive::odom_callback(const radar_ros::Localization::ConstPtr &odom){
+    angular_z = -odom->original_ins.angular_z;//定义为顺时针为正，要取负数
+}
+
+void radar_candrive::chassis_callback(const radar_ros::ChassisReport::ConstPtr &chassis){
+    gear_location = chassis->gear_location;
+    velocity = chassis->current_velocity;
+}
+
+void radar_candrive::timerCallback(const ros::TimerEvent& event){
+
+     // 将速度值转换为整数形式
+    int radar_speed = static_cast<int>(velocity / 0.02);
     speed_information speed_information_msg;
     speed_information_msg.data.RadarDevice_Speed1 = static_cast<uint64_t>((radar_speed >> 8) & 0x1F);
     speed_information_msg.data.RadarDevice_Speed2 = static_cast<uint64_t>(radar_speed & 255);
 
-    if (speed < 0.0) {
-        speed_information_msg.data.RadarDevice_SpeedDirection = RadarDevice_SpeedDirection::BACKWARD;
-    } else if (speed > 0.0) {
-        speed_information_msg.data.RadarDevice_SpeedDirection = RadarDevice_SpeedDirection::FORWARD;
-    } else {
+    if (gear_location == 7) {//倒挡
+        speed_information_msg.data.RadarDevice_SpeedDirection = RadarDevice_SpeedDirection::BACKWARD; 
+    } else if (gear_location == 0) {//空挡
         speed_information_msg.data.RadarDevice_SpeedDirection = RadarDevice_SpeedDirection::STANDSTILL;
+    } else {//前进档
+        speed_information_msg.data.RadarDevice_SpeedDirection = RadarDevice_SpeedDirection::FORWARD;
     }
 
     // 创建一个CAN帧
@@ -204,7 +214,7 @@ void radar_candrive::odom_callback(const nav_msgs::Odometry::ConstPtr &odom){
         perror("Write");
     }
 
-    double yaw_rate = odom->twist.twist.angular.z * 180.0 / M_PI;
+    double yaw_rate = angular_z * 180.0 / M_PI;//odom->original_ins.angular_z为车辆Z轴角速度，顺时针为正，单位rad/s
 
     int radar_yaw_rate = static_cast<int>((yaw_rate + 327.68) / 0.01);
 
@@ -297,7 +307,13 @@ bool radar_candrive::RecvCanMsgThread1(){
                 RadarObj1.position.pose.position.x = x;
                 RadarObj1.position.pose.position.y = y;
                 RadarObj1.position.pose.position.z = 1;
-                RadarObj1.relative_velocity.twist.linear.x = vx;
+                if (gear_location == 7) {//倒挡
+                    RadarObj1.relative_velocity.twist.linear.x = vx + velocity; //前向毫米波雷达输出的绝对速度转换回相对速度 v = v绝对 - v车速;
+                } else if (gear_location == 0) {//空挡
+                    RadarObj1.relative_velocity.twist.linear.x = vx;
+                } else {//前进档
+                    RadarObj1.relative_velocity.twist.linear.x = vx - velocity; //前向毫米波雷达输出的绝对速度转换回相对速度 v = v绝对 - v车速;
+                }
                 RadarObj1.relative_velocity.twist.linear.y = vy;
                 RadarObj1.relative_velocity.twist.linear.z = 0;
                 RadarObj1.dynamic_property = DynProp;
@@ -362,7 +378,13 @@ bool radar_candrive::RecvCanMsgThread1(){
                 RadarClu1.position.pose.position.x = x;
                 RadarClu1.position.pose.position.y = y;
                 RadarClu1.position.pose.position.z = 1;
-                RadarClu1.relative_velocity.twist.linear.x = vx;
+                if (gear_location == 7) {//倒挡
+                    RadarClu1.relative_velocity.twist.linear.x = vx + velocity; //前向毫米波雷达输出的绝对速度转换回相对速度 v = v绝对 - v车速;
+                } else if (gear_location == 0) {//空挡
+                    RadarClu1.relative_velocity.twist.linear.x = vx;
+                } else {//前进档
+                    RadarClu1.relative_velocity.twist.linear.x = vx - velocity; //前向毫米波雷达输出的绝对速度转换回相对速度 v = v绝对 - v车速;
+                }
                 RadarClu1.relative_velocity.twist.linear.y = vy;
                 RadarClu1.relative_velocity.twist.linear.z = 0;
                 RadarClu1.rcs = RSC;

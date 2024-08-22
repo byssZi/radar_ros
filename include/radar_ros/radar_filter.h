@@ -9,6 +9,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include "radar_ros/ChassisReport.h"
 enum {
   POINT,
   CAR,
@@ -126,9 +127,9 @@ class filter{
       void loadCalibrationData_right (void);
       void loadCalibrationData_back (void);
       void visualization_object_data(radar_ros::ObjectList object_list, ros::Publisher object_pb, ros::Publisher velocity_pb);
-      radar_ros::ObjectList filter_calib_object(const radar_ros::ObjectList::ConstPtr& object_list, Eigen::Matrix4d RT, double distance);
+      radar_ros::ObjectList filter_calib_object(const radar_ros::ObjectList::ConstPtr& object_list, Eigen::Matrix4d RT, double distance, int gear_location, double velocity);
       void visualization_cluster_data(radar_ros::ClusterList cluster_list, ros::Publisher cluster_pb);
-      radar_ros::ClusterList filter_calib_cluster(const radar_ros::ClusterList::ConstPtr& cluster_list, Eigen::Matrix4d RT, double distance);
+      radar_ros::ClusterList filter_calib_cluster(const radar_ros::ClusterList::ConstPtr& cluster_list, Eigen::Matrix4d RT, double distance, int gear_location, double velocity);
 
       void object_msg_Callback_front(const radar_ros::ObjectList::ConstPtr& object_list_front);
       void object_msg_Callback_left(const radar_ros::ObjectList::ConstPtr& object_list_left);
@@ -142,6 +143,11 @@ class filter{
 
       void object_msg_Callback_combine(const radar_ros::ObjectList object_list_combine);
       void cluster_msg_Callback_combine(const radar_ros::ClusterList cluster_list_combine);
+      void chassis_callback(const radar_ros::ChassisReport::ConstPtr &chassis);
+
+      ros::Subscriber chassis_sub;
+      int gear_location;
+      double velocity;
 
     public:
       filter();

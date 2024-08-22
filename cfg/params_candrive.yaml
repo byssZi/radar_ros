@@ -67,5 +67,3 @@ radar:
           0,1,0,0,
           0,0,1,0,
           0,0,0,1]
-
-odom_topic: "/autoware_tracker/Odom" #惯导话题，用于给前向毫米波雷达通过can总线发送数据

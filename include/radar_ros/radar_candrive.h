@@ -22,6 +22,9 @@
 #include "radar_ros/ClusterList.h"
 #include "radar_ros/Cluster.h"
 #include "Eigen/Dense"
+#include "radar_ros/Localization.h"
+#include "radar_ros/Ins.h"
+#include "radar_ros/ChassisReport.h"
 
 #define downcan0 "sudo ip link set down can0"							//关闭CAN0
 #define commandcan0 "sudo ip link set can0 type can bitrate 500000" //大陆ars408_radar,srr308的波特率为500Kbps
@@ -84,8 +87,12 @@ private:
     int can_fd_1, can_fd_2;
 
     ros::Subscriber odom_sub;
-    std::string odom_topic;
+    ros::Subscriber chassis_sub;
+    ros::Timer timer_;
 
+    int gear_location; //档位信息# 当前档位  空挡：0 前进档：1-6 倒档：7 
+    double velocity; //车速(始终为正)
+    double angular_z; //角速度(逆时针为正)
 
 
 public:
@@ -97,7 +104,9 @@ public:
     int Can1Init();
     bool RecvCanMsgThread1();
     bool RecvCanMsgThread2();
-    void odom_callback(const nav_msgs::Odometry::ConstPtr &odom);
+    void odom_callback(const radar_ros::Localization::ConstPtr &odom);
+    void chassis_callback(const radar_ros::ChassisReport::ConstPtr &chassis);
+    void timerCallback(const ros::TimerEvent& event);
 };
 
 

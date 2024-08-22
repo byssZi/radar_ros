@@ -69,6 +69,7 @@ add_message_files(
   Calib.msg
   Localization.msg
   Ins.msg
+  ChassisReport.msg
 )
 generate_messages(
   DEPENDENCIES
