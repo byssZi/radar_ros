@@ -25,6 +25,7 @@
 #include "radar_ros/Localization.h"
 #include "radar_ros/Ins.h"
 #include "radar_ros/ChassisReport.h"
+#include "radar_ros/RadarStatus.h"
 
 #define downcan0 "sudo ip link set down can0"							//关闭CAN0
 #define commandcan0 "sudo ip link set can0 type can bitrate 500000" //大陆ars408_radar,srr308的波特率为500Kbps
@@ -82,7 +83,12 @@ private:
     std::string cluster_can0_id0_topic;
     std::string cluster_can0_id1_topic;
     std::string cluster_can1_id0_topic;
-    std::string cluster_can1_id1_topic;    
+    std::string cluster_can1_id1_topic;
+    
+    ros::Publisher status_can0_id0;
+    ros::Publisher status_can0_id1;
+    ros::Publisher status_can1_id0;
+    ros::Publisher status_can1_id1;
 
     int can_fd_1, can_fd_2;
 
@@ -90,6 +96,7 @@ private:
     ros::Subscriber chassis_sub;
     ros::Timer timer_;
 
+    bool is_input_radar_data;
     int gear_location; //档位信息# 当前档位  空挡：0 前进档：1-6 倒档：7 
     double velocity; //车速(始终为正)
     double angular_z; //角速度(逆时针为正)

@@ -3,7 +3,7 @@
 using namespace std;
 
 
-filter::filter() : gear_location(0), velocity(0){
+filter::filter(){
 
     nh.param<double>("radar_filter_distance_front",filter::distance_front,70.0);
     nh.param<std::string>("object_can0_id0_topic",filter::radar_sub_object_topic_front,"/ars_40X/objects_front");
@@ -89,9 +89,7 @@ void filter::run(){
     combine_cluster = nh.subscribe("/ars_40X/combined_clusters",50,&filter::cluster_msg_Callback_combine, this);
     pb_object_marker_combine = nh.advertise<visualization_msgs::MarkerArray>("/visualize_objects_combine",50);
     pb_object_velocity_combine = nh.advertise<visualization_msgs::MarkerArray>("/visualize_velocity_combine",50);  
-    pb_cluster_marker_combine = nh.advertise<visualization_msgs::MarkerArray>("/visualize_clusters_combine",50);
-
-    chassis_sub = nh.subscribe("/chassis",1,&filter::chassis_callback, this);//接收自车底盘信息，输入将除前向外其余毫米波雷达的速度转换为绝对速度
+    pb_cluster_marker_combine = nh.advertise<visualization_msgs::MarkerArray>("/visualize_clusters_combine",50); 
 
 };
 
@@ -123,14 +121,9 @@ void filter::loadCalibrationData_back(void){
     RT_back(3,0) = matrix_back[12]; RT_back(3,1) = matrix_back[13]; RT_back(3,2) = matrix_back[14]; RT_back(3,3) = matrix_back[15];
 };
 
-void filter::chassis_callback(const radar_ros::ChassisReport::ConstPtr &chassis){
-    gear_location = chassis->gear_location;
-    velocity = chassis->current_velocity;
-}
-
 void filter::object_msg_Callback_front(const radar_ros::ObjectList::ConstPtr& object_list_front){
     radar_ros::ObjectList object_list_pub;
-    object_list_pub = filter_calib_object(object_list_front, RT_front, distance_front, gear_location, 0);//前向毫米波不用补偿
+    object_list_pub = filter_calib_object(object_list_front, RT_front, distance_front);
 /*     printf ("\nMethod #2: using an Affine3f\n");
     std::cout<<RT<<RT_lidar<<std::endl; */
     pb_object_front.publish(object_list_pub);
@@ -139,7 +132,7 @@ void filter::object_msg_Callback_front(const radar_ros::ObjectList::ConstPtr& ob
 
 void filter::object_msg_Callback_left(const radar_ros::ObjectList::ConstPtr& object_list_left){
     radar_ros::ObjectList object_list_pub;
-    object_list_pub = filter_calib_object(object_list_left, RT_left, distance_left, gear_location, velocity);
+    object_list_pub = filter_calib_object(object_list_left, RT_left, distance_left);
 /*     printf ("\nMethod #2: using an Affine3f_left\n");
     std::cout<<RT_left<<RT_left_lidar<<std::endl; */
     pb_object_left.publish(object_list_pub);
@@ -148,7 +141,7 @@ void filter::object_msg_Callback_left(const radar_ros::ObjectList::ConstPtr& obj
 
 void filter::object_msg_Callback_right(const radar_ros::ObjectList::ConstPtr& object_list_right){
     radar_ros::ObjectList object_list_pub;
-    object_list_pub = filter_calib_object(object_list_right, RT_right, distance_right, gear_location, velocity);
+    object_list_pub = filter_calib_object(object_list_right, RT_right, distance_right);
 /*     printf ("\nMethod #2: using an Affine3f_right\n");
     std::cout<<RT_right<<RT_right_lidar<<std::endl; */
     pb_object_right.publish(object_list_pub);
@@ -157,7 +150,7 @@ void filter::object_msg_Callback_right(const radar_ros::ObjectList::ConstPtr& ob
 
 void filter::object_msg_Callback_back(const radar_ros::ObjectList::ConstPtr& object_list_back){
     radar_ros::ObjectList object_list_pub;
-    object_list_pub = filter_calib_object(object_list_back, RT_back, distance_back, gear_location, velocity);
+    object_list_pub = filter_calib_object(object_list_back, RT_back, distance_back);
 /*     printf ("\nMethod #2: using an Affine3f_back\n");
     std::cout<<RT_back<<RT_back_lidar<<std::endl; */
     pb_object_back.publish(object_list_pub);
@@ -166,7 +159,7 @@ void filter::object_msg_Callback_back(const radar_ros::ObjectList::ConstPtr& obj
 
 void filter::cluster_msg_Callback_front(const radar_ros::ClusterList::ConstPtr& cluster_list_front){
     radar_ros::ClusterList cluster_list_pub;
-    cluster_list_pub = filter_calib_cluster(cluster_list_front, RT_front, distance_front, gear_location, 0);
+    cluster_list_pub = filter_calib_cluster(cluster_list_front, RT_front, distance_front);
 /*     printf ("\nMethod #2: using an Affine3f\n");
     std::cout<<RT<<RT_lidar<<std::endl; */
     pb_cluster_front.publish(cluster_list_pub);
@@ -175,7 +168,7 @@ void filter::cluster_msg_Callback_front(const radar_ros::ClusterList::ConstPtr& 
 
 void filter::cluster_msg_Callback_left(const radar_ros::ClusterList::ConstPtr& cluster_list_left){
     radar_ros::ClusterList cluster_list_pub;
-    cluster_list_pub = filter_calib_cluster(cluster_list_left, RT_left, distance_left, gear_location, velocity);
+    cluster_list_pub = filter_calib_cluster(cluster_list_left, RT_left, distance_left);
 /*     printf ("\nMethod #2: using an Affine3f\n");
     std::cout<<RT<<RT_lidar<<std::endl; */
     pb_cluster_left.publish(cluster_list_pub);
@@ -184,7 +177,7 @@ void filter::cluster_msg_Callback_left(const radar_ros::ClusterList::ConstPtr& c
 
 void filter::cluster_msg_Callback_right(const radar_ros::ClusterList::ConstPtr& cluster_list_right){
     radar_ros::ClusterList cluster_list_pub;
-    cluster_list_pub = filter_calib_cluster(cluster_list_right, RT_right, distance_right, gear_location, velocity);
+    cluster_list_pub = filter_calib_cluster(cluster_list_right, RT_right, distance_right);
 /*     printf ("\nMethod #2: using an Affine3f\n");
     std::cout<<RT<<RT_lidar<<std::endl; */
     pb_cluster_right.publish(cluster_list_pub);
@@ -193,7 +186,7 @@ void filter::cluster_msg_Callback_right(const radar_ros::ClusterList::ConstPtr& 
 
 void filter::cluster_msg_Callback_back(const radar_ros::ClusterList::ConstPtr& cluster_list_back){
     radar_ros::ClusterList cluster_list_pub;
-    cluster_list_pub = filter_calib_cluster(cluster_list_back, RT_back, distance_back, gear_location, velocity);
+    cluster_list_pub = filter_calib_cluster(cluster_list_back, RT_back, distance_back);
 /*     printf ("\nMethod #2: using an Affine3f\n");
     std::cout<<RT<<RT_lidar<<std::endl; */
     pb_cluster_back.publish(cluster_list_pub);

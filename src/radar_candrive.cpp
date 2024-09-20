@@ -14,6 +14,8 @@ radar_candrive::radar_candrive() : gear_location(0), velocity(0), angular_z(0){
     nh.param<std::string>("cluster_can1_id0_topic",radar_candrive::cluster_can1_id0_topic,"/ars_40X/clusters_left");
     nh.param<std::string>("cluster_can1_id1_topic",radar_candrive::cluster_can1_id1_topic,"/ars_40X/clusters_right");
 
+    nh.param<bool>("input_odom_chassis_data_to_radar",radar_candrive::is_input_radar_data, false);
+
     int can0, can1;
     while(can0 =Can0Init()  < 0){
 	    if (can0 =Can0Init() > 0){
@@ -157,15 +159,20 @@ void radar_candrive::run(){
     cluster_can1_id0 = nh.advertise<radar_ros::ClusterList>(cluster_can1_id0_topic,1);
     cluster_can1_id1 = nh.advertise<radar_ros::ClusterList>(cluster_can1_id1_topic,1);
 
+    status_can0_id0 = nh.advertise<radar_ros::RadarStatus>("/ars_40X/status_can0id0",1);
+    status_can0_id1 = nh.advertise<radar_ros::RadarStatus>("/ars_40X/status_can0id1",1);
+    status_can1_id0 = nh.advertise<radar_ros::RadarStatus>("/ars_40X/status_can1id0",1);
+    status_can1_id1 = nh.advertise<radar_ros::RadarStatus>("/ars_40X/status_can1id1",1);
+
     std::thread t1(std::bind(&radar_candrive::RecvCanMsgThread1, this));/*创建CAN接收线程*/
     t1.detach();/*分离线程*/
     std::thread t2(std::bind(&radar_candrive::RecvCanMsgThread2, this));/*创建CAN接收线程*/
     t2.detach();/*分离线程*/
-
-    odom_sub = nh.subscribe("/odomData",1,&radar_candrive::odom_callback, this);//接收自车惯导信息，输入前向毫米波雷达
-    chassis_sub = nh.subscribe("/chassis",1,&radar_candrive::chassis_callback, this);//接收自车底盘信息，输入前向毫米波雷达
-    timer_ = nh.createTimer(ros::Duration(0.1), &radar_candrive::timerCallback, this);
-
+    if(is_input_radar_data){
+        odom_sub = nh.subscribe("/odomData",1,&radar_candrive::odom_callback, this);//接收自车惯导信息，输入前向毫米波雷达
+        chassis_sub = nh.subscribe("/chassis",1,&radar_candrive::chassis_callback, this);//接收自车底盘信息，输入前向毫米波雷达
+        timer_ = nh.createTimer(ros::Duration(0.1), &radar_candrive::timerCallback, this);
+    }
 }
 
 void radar_candrive::odom_callback(const radar_ros::Localization::ConstPtr &odom){
@@ -274,6 +281,9 @@ bool radar_candrive::RecvCanMsgThread1(){
 
             radar_ros::Cluster RadarClu1;
             radar_ros::Cluster RadarClu2;
+
+            radar_ros::RadarStatus RadarSta1;
+            radar_ros::RadarStatus RadarSta2;
             if(frame.can_id == 0x60A) {// status
 		        Object1List.header.stamp = ros::Time::now();
 		        Object1List.header.frame_id = "rslidar";
@@ -356,7 +366,7 @@ bool radar_candrive::RecvCanMsgThread1(){
                 Cluster1List.header.frame_id = "rslidar";
                 cluster_can0_id0.publish(Cluster1List);
                 Cluster1List.clusters.clear();
-            } else if(frame.can_id == 0x701) {// status
+            } else if(frame.can_id == 0x701) {// clusters
 		        //ID
 		        int ID = frame.data[0];
                 //Y坐标
@@ -389,6 +399,25 @@ bool radar_candrive::RecvCanMsgThread1(){
                 RadarClu1.relative_velocity.twist.linear.z = 0;
                 RadarClu1.rcs = RSC;
                 Cluster1List.clusters.push_back(RadarClu1);
+            } else if(frame.can_id == 0x201) {//status
+                RadarSta1.read_status = static_cast<bool>((frame.data[0] >> 6) & 0x01);
+                RadarSta1.write_status = static_cast<bool>((frame.data[0] >> 7) & 0x01);
+                RadarSta1.max_distance = static_cast<uint64_t>(((frame.data[1] << 2) + ((frame.data[2] >> 6) & 0x03)) * 2);
+                RadarSta1.persistent_error = static_cast<bool>((frame.data[2] >> 5) & 0x01);
+                RadarSta1.interference = static_cast<bool>((frame.data[2] >> 4) & 0x01);
+                RadarSta1.temperature_error = static_cast<bool>((frame.data[2] >> 3) & 0x01);
+                RadarSta1.temporary_error = static_cast<bool>((frame.data[2] >> 2) & 0x01);
+                RadarSta1.voltage_error = static_cast<bool>((frame.data[2] >> 1) & 0x01);
+                RadarSta1.radar_power_cfg = static_cast<int>(((0x03 & frame.data[3]) << 1) + ((frame.data[4] >> 7) & 0x01));
+                RadarSta1.sort_index = static_cast<int>((frame.data[4] >> 4) & 0x07);
+                RadarSta1.sensor_id = static_cast<int>(frame.data[4] & 0x07);
+                RadarSta1.motion_rx_state = static_cast<int>((frame.data[5] >> 6) & 0x03);
+                RadarSta1.send_ext_info_cfg = static_cast<bool>((frame.data[5] >> 5) & 0x01);
+                RadarSta1.send_quality_cfg = static_cast<bool>((frame.data[5] >> 4) & 0x01);
+                RadarSta1.output_type_cfg = static_cast<int>((frame.data[5] >> 2) & 0x03);
+                RadarSta1.ctrl_relay_cfg = static_cast<bool>((frame.data[5] >> 1) & 0x01);
+                RadarSta1.rcs_threshold = static_cast<int>((frame.data[7] >> 2) & 0x07);
+                status_can0_id0.publish(RadarSta1);
             } else if(frame.can_id == 0x61A) {// status
 		        Object2List.header.stamp = ros::Time::now();
 		        Object2List.header.frame_id = "rslidar";
@@ -467,7 +496,7 @@ bool radar_candrive::RecvCanMsgThread1(){
                 Cluster2List.header.frame_id = "rslidar";
                 cluster_can0_id1.publish(Cluster2List);
                 Cluster2List.clusters.clear();
-            } else if(frame.can_id == 0x711) {// status
+            } else if(frame.can_id == 0x711) {// clusters
 		        //ID
 		        int ID = frame.data[0];
                 //Y坐标
@@ -494,6 +523,25 @@ bool radar_candrive::RecvCanMsgThread1(){
                 RadarClu2.relative_velocity.twist.linear.z = 0;
                 RadarClu2.rcs = RSC;
                 Cluster2List.clusters.push_back(RadarClu2);
+            } else if(frame.can_id == 0x211) {//status
+                RadarSta2.read_status = static_cast<bool>((frame.data[0] >> 6) & 0x01);
+                RadarSta2.write_status = static_cast<bool>((frame.data[0] >> 7) & 0x01);
+                RadarSta2.max_distance = static_cast<uint64_t>(((frame.data[1] << 2) + ((frame.data[2] >> 6) & 0x03)) * 2);
+                RadarSta2.persistent_error = static_cast<bool>((frame.data[2] >> 5) & 0x01);
+                RadarSta2.interference = static_cast<bool>((frame.data[2] >> 4) & 0x01);
+                RadarSta2.temperature_error = static_cast<bool>((frame.data[2] >> 3) & 0x01);
+                RadarSta2.temporary_error = static_cast<bool>((frame.data[2] >> 2) & 0x01);
+                RadarSta2.voltage_error = static_cast<bool>((frame.data[2] >> 1) & 0x01);
+                RadarSta2.radar_power_cfg = static_cast<int>(((0x03 & frame.data[3]) << 1) + ((frame.data[4] >> 7) & 0x01));
+                RadarSta2.sort_index = static_cast<int>((frame.data[4] >> 4) & 0x07);
+                RadarSta2.sensor_id = static_cast<int>(frame.data[4] & 0x07);
+                RadarSta2.motion_rx_state = static_cast<int>((frame.data[5] >> 6) & 0x03);
+                RadarSta2.send_ext_info_cfg = static_cast<bool>((frame.data[5] >> 5) & 0x01);
+                RadarSta2.send_quality_cfg = static_cast<bool>((frame.data[5] >> 4) & 0x01);
+                RadarSta2.output_type_cfg = static_cast<int>((frame.data[5] >> 2) & 0x03);
+                RadarSta2.ctrl_relay_cfg = static_cast<bool>((frame.data[5] >> 1) & 0x01);
+                RadarSta2.rcs_threshold = static_cast<int>((frame.data[7] >> 2) & 0x07);
+                status_can0_id1.publish(RadarSta2);
              }else {
 		        ROS_INFO("CANID=0x%X THROW EXCEPTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", frame.can_id);
                //return 1;
@@ -534,6 +582,9 @@ bool radar_candrive::RecvCanMsgThread2(){
 
             radar_ros::Cluster RadarClu1;
             radar_ros::Cluster RadarClu2;
+
+            radar_ros::RadarStatus RadarSta1;
+            radar_ros::RadarStatus RadarSta2;
             if(frame.can_id == 0x60A) {// status
 		        Object1List.header.stamp = ros::Time::now();
 		        Object1List.header.frame_id = "rslidar";
@@ -609,7 +660,7 @@ bool radar_candrive::RecvCanMsgThread2(){
                 Cluster1List.header.frame_id = "rslidar";
                 cluster_can1_id0.publish(Cluster1List);
                 Cluster1List.clusters.clear();
-            } else if(frame.can_id == 0x701) {// status
+            } else if(frame.can_id == 0x701) {// clusters
 		        //ID
 		        int ID = frame.data[0];
                 //Y坐标
@@ -636,6 +687,25 @@ bool radar_candrive::RecvCanMsgThread2(){
                 RadarClu1.relative_velocity.twist.linear.z = 0;
                 RadarClu1.rcs = RSC;
                 Cluster1List.clusters.push_back(RadarClu1);
+            } else if(frame.can_id == 0x201) {//status
+                RadarSta1.read_status = static_cast<bool>((frame.data[0] >> 6) & 0x01);
+                RadarSta1.write_status = static_cast<bool>((frame.data[0] >> 7) & 0x01);
+                RadarSta1.max_distance = static_cast<uint64_t>(((frame.data[1] << 2) + ((frame.data[2] >> 6) & 0x03)) * 2);
+                RadarSta1.persistent_error = static_cast<bool>((frame.data[2] >> 5) & 0x01);
+                RadarSta1.interference = static_cast<bool>((frame.data[2] >> 4) & 0x01);
+                RadarSta1.temperature_error = static_cast<bool>((frame.data[2] >> 3) & 0x01);
+                RadarSta1.temporary_error = static_cast<bool>((frame.data[2] >> 2) & 0x01);
+                RadarSta1.voltage_error = static_cast<bool>((frame.data[2] >> 1) & 0x01);
+                RadarSta1.radar_power_cfg = static_cast<int>(((0x03 & frame.data[3]) << 1) + ((frame.data[4] >> 7) & 0x01));
+                RadarSta1.sort_index = static_cast<int>((frame.data[4] >> 4) & 0x07);
+                RadarSta1.sensor_id = static_cast<int>(frame.data[4] & 0x07);
+                RadarSta1.motion_rx_state = static_cast<int>((frame.data[5] >> 6) & 0x03);
+                RadarSta1.send_ext_info_cfg = static_cast<bool>((frame.data[5] >> 5) & 0x01);
+                RadarSta1.send_quality_cfg = static_cast<bool>((frame.data[5] >> 4) & 0x01);
+                RadarSta1.output_type_cfg = static_cast<int>((frame.data[5] >> 2) & 0x03);
+                RadarSta1.ctrl_relay_cfg = static_cast<bool>((frame.data[5] >> 1) & 0x01);
+                RadarSta1.rcs_threshold = static_cast<int>((frame.data[7] >> 2) & 0x07);
+                status_can0_id0.publish(RadarSta1);
             } else if(frame.can_id == 0x61A) {// status
 		        Object2List.header.stamp = ros::Time::now();
 		        Object2List.header.frame_id = "rslidar";
@@ -714,7 +784,7 @@ bool radar_candrive::RecvCanMsgThread2(){
                 Cluster2List.header.frame_id = "rslidar";
                 cluster_can1_id1.publish(Cluster2List);
                 Cluster2List.clusters.clear();
-            } else if(frame.can_id == 0x711) {// status
+            } else if(frame.can_id == 0x711) {// clusters
 		        //ID
 		        int ID = frame.data[0];
                 //Y坐标
@@ -741,7 +811,26 @@ bool radar_candrive::RecvCanMsgThread2(){
                 RadarClu2.relative_velocity.twist.linear.z = 0;
                 RadarClu2.rcs = RSC;
                 Cluster2List.clusters.push_back(RadarClu2);
-             }else {
+            } else if(frame.can_id == 0x211) {//status
+                RadarSta2.read_status = static_cast<bool>((frame.data[0] >> 6) & 0x01);
+                RadarSta2.write_status = static_cast<bool>((frame.data[0] >> 7) & 0x01);
+                RadarSta2.max_distance = static_cast<uint64_t>(((frame.data[1] << 2) + ((frame.data[2] >> 6) & 0x03)) * 2);
+                RadarSta2.persistent_error = static_cast<bool>((frame.data[2] >> 5) & 0x01);
+                RadarSta2.interference = static_cast<bool>((frame.data[2] >> 4) & 0x01);
+                RadarSta2.temperature_error = static_cast<bool>((frame.data[2] >> 3) & 0x01);
+                RadarSta2.temporary_error = static_cast<bool>((frame.data[2] >> 2) & 0x01);
+                RadarSta2.voltage_error = static_cast<bool>((frame.data[2] >> 1) & 0x01);
+                RadarSta2.radar_power_cfg = static_cast<int>(((0x03 & frame.data[3]) << 1) + ((frame.data[4] >> 7) & 0x01));
+                RadarSta2.sort_index = static_cast<int>((frame.data[4] >> 4) & 0x07);
+                RadarSta2.sensor_id = static_cast<int>(frame.data[4] & 0x07);
+                RadarSta2.motion_rx_state = static_cast<int>((frame.data[5] >> 6) & 0x03);
+                RadarSta2.send_ext_info_cfg = static_cast<bool>((frame.data[5] >> 5) & 0x01);
+                RadarSta2.send_quality_cfg = static_cast<bool>((frame.data[5] >> 4) & 0x01);
+                RadarSta2.output_type_cfg = static_cast<int>((frame.data[5] >> 2) & 0x03);
+                RadarSta2.ctrl_relay_cfg = static_cast<bool>((frame.data[5] >> 1) & 0x01);
+                RadarSta2.rcs_threshold = static_cast<int>((frame.data[7] >> 2) & 0x07);
+                status_can0_id1.publish(RadarSta2);
+            }else {
 		        ROS_INFO("CANID=0x%X THROW EXCEPTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", frame.can_id);
                //return 1;
 	        }

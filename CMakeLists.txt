@@ -70,6 +70,7 @@ add_message_files(
   Localization.msg
   Ins.msg
   ChassisReport.msg
+  RadarStatus.msg
 )
 generate_messages(
   DEPENDENCIES

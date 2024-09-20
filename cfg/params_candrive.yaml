@@ -1,3 +1,5 @@
+input_odom_chassis_data_to_radar: true
+
 object_can0_id0_topic: "/ars_40X/objects_front" #解析毫米波雷达object模式数据
 object_can0_id1_topic: "/ars_40X/objects_back" 
 object_can1_id0_topic: "/ars_40X/objects_left" 
