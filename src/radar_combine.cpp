@@ -6,49 +6,6 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
-#include "radar_ros/dbscan.h"
-#include <limits>
-#include <unordered_map>
-#include <cmath>
-
-#define MINIMUM_POINTS 4     // minimum number of cluster
-#define EPSILON (0.75*0.75)  // distance for clustering, metre^2
-
-struct ClusterInfo {
-    float minX, maxX, minY, maxY, minZ, maxZ;
-    float sumVx, sumVy, sumRcs;
-    int pointCount;
-
-    ClusterInfo() {
-        minX = minY = minZ = std::numeric_limits<float>::max();
-        maxX = maxY = maxZ = std::numeric_limits<float>::lowest();
-        sumVx = sumVy = 0.0;
-        pointCount = 0;
-    }
-
-    void update(const Point_& point) {
-        if (point.x < minX) minX = point.x;
-        if (point.x > maxX) maxX = point.x;
-        if (point.y < minY) minY = point.y;
-        if (point.y > maxY) maxY = point.y;
-        if (point.z < minZ) minZ = point.z;
-        if (point.z > maxZ) maxZ = point.z;
-
-        sumVx += point.vx;
-        sumVy += point.vy;
-        sumRcs += point.rcs;
-        pointCount++;
-    }
-
-    float centerX() const { return (minX + maxX) / 2.0f; }
-    float centerY() const { return (minY + maxY) / 2.0f; }
-    float centerZ() const { return (minZ + maxZ) / 2.0f; }
-    float length() const { return maxX - minX; }
-    float width() const { return maxY - minY; }
-    float avgVx() const { return sumVx / pointCount; }
-    float avgVy() const { return sumVy / pointCount; }
-    float avgRcs() const { return sumRcs / pointCount; }
-};
 
 // 计算两个框之间的IoU
 float calculateIoU(const radar_ros::Object& obj1, const radar_ros::Object& obj2) {
@@ -126,21 +83,11 @@ void objectCallback(const radar_ros::ObjectList::ConstPtr& msg1,
     pub.publish(combined_msg);
 }
 
-std::unordered_map<int, ClusterInfo> calculateClusterBoundingBoxes(const std::vector<Point_>& m_points) {
-    std::unordered_map<int, ClusterInfo> clusterInfoMap;
-
-    for (const auto& point : m_points) {
-        clusterInfoMap[point.clusterID].update(point);
-    }
-
-    return clusterInfoMap;
-}
-
 void clusterCallback(const radar_ros::ClusterList::ConstPtr& msg1,
                    const radar_ros::ClusterList::ConstPtr& msg2,
                    const radar_ros::ClusterList::ConstPtr& msg3,
                    const radar_ros::ClusterList::ConstPtr& msg4,
-                   ros::Publisher& pub, ros::Publisher& pub2)
+                   ros::Publisher& pub)
 {
     radar_ros::ClusterList combined_msg;
     combined_msg.header.stamp = ros::Time::now();
@@ -152,50 +99,7 @@ void clusterCallback(const radar_ros::ClusterList::ConstPtr& msg1,
     combined_msg.clusters.insert(combined_msg.clusters.end(), msg3->clusters.begin(), msg3->clusters.end());
     combined_msg.clusters.insert(combined_msg.clusters.end(), msg4->clusters.begin(), msg4->clusters.end());
 
-    std::vector<Point> points;
-
-    for(auto cluster : combined_msg.clusters){
-        Point point;
-        point.x = cluster.position.pose.position.x;
-        point.y = cluster.position.pose.position.y;
-        point.z = cluster.position.pose.position.z;
-        point.vx = cluster.relative_velocity.twist.linear.x;
-        point.vy = cluster.relative_velocity.twist.linear.y;
-        point.rcs = cluster.rcs;
-        point.clusterID = UNCLASSIFIED;
-        points.push_back(point);
-    }
-    DBSCAN ds(MINIMUM_POINTS, EPSILON, points);//dbscan聚类
-    ds.run();
-    
-    auto clusterInfoMap = calculateClusterBoundingBoxes(ds.m_points);
-
-    radar_ros::ObjectList cluster_msgs;
-    cluster_msgs.header = combined_msg.header;
-    for (const auto& [clusterID, info] : clusterInfoMap) {
-        radar_ros::Object cluster_msg;
-        cluster_msg.width = info.width();
-        cluster_msg.length = info.length();
-        cluster_msg.orientation_angle = 0;
-        cluster_msg.rcs = info.avgRcs();
-        cluster_msg.id = clusterID;
-        cluster_msg.relative_velocity.twist.linear.x = info.avgVx();
-        cluster_msg.relative_velocity.twist.linear.y = info.avgVy();
-        cluster_msg.position.pose.position.x = info.centerX();
-        cluster_msg.position.pose.position.y = info.centerY();
-        cluster_msg.position.pose.position.z = info.centerZ();
-        cluster_msg.position.pose.orientation.w = 1;
-        cluster_msg.position.pose.orientation.x = 0;
-        cluster_msg.position.pose.orientation.y = 0;
-        cluster_msg.position.pose.orientation.z = 0;
-        cluster_msg.class_type = 0;
-        cluster_msg.prob_of_exist = 1;
-        cluster_msgs.objects.push_back(cluster_msg);
-    }
-
-
     pub.publish(combined_msg);
-    pub2.publish(cluster_msgs);
 }
 
 int main(int argc, char** argv)
@@ -238,8 +142,7 @@ int main(int argc, char** argv)
     typedef message_filters::sync_policies::ApproximateTime<radar_ros::ClusterList, radar_ros::ClusterList, radar_ros::ClusterList, radar_ros::ClusterList> MySyncPolicy_cluster;
     message_filters::Synchronizer<MySyncPolicy_cluster> sync_cluster(MySyncPolicy_cluster(10), sub_cluster_1, sub_cluster_2, sub_cluster_3, sub_cluster_4); 
     ros::Publisher combined_cluster_pub = nh.advertise<radar_ros::ClusterList>("/ars_40X/combined_clusters", 10);
-    ros::Publisher combined_dbscan_pub = nh.advertise<radar_ros::ObjectList>("/ars_40X/combined_dbscan", 10);
-    sync_cluster.registerCallback(boost::bind(&clusterCallback, _1, _2, _3, _4, boost::ref(combined_cluster_pub), boost::ref(combined_dbscan_pub)));
+    sync_cluster.registerCallback(boost::bind(&clusterCallback, _1, _2, _3, _4, boost::ref(combined_cluster_pub)));
 
     ros::spin();
 

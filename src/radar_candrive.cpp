@@ -357,6 +357,7 @@ bool radar_candrive::RecvCanMsgThread1(){
                     Object1List.objects[object_3_extended_id_1].position.pose.orientation.z = q.z();
                     Object1List.objects[object_3_extended_id_1].length = length;
                     Object1List.objects[object_3_extended_id_1].width = width;
+                    Object1List.objects[object_3_extended_id_1].height = (length + width)/2;
                     Object1List.objects[object_3_extended_id_1].orientation_angle = orientation_angle;
                     Object1List.objects[object_3_extended_id_1].class_type = class_type;
                     object_3_extended_id_1++;
@@ -487,6 +488,7 @@ bool radar_candrive::RecvCanMsgThread1(){
                     Object2List.objects[object_3_extended_id_2].position.pose.orientation.z = q.z();
                     Object2List.objects[object_3_extended_id_2].length = length;
                     Object2List.objects[object_3_extended_id_2].width = width;
+                    Object2List.objects[object_3_extended_id_2].height = (length + width)/2;
                     Object2List.objects[object_3_extended_id_2].orientation_angle = orientation_angle;
                     Object2List.objects[object_3_extended_id_2].class_type = class_type;
                     object_3_extended_id_2++;
@@ -651,6 +653,7 @@ bool radar_candrive::RecvCanMsgThread2(){
                     Object1List.objects[object_3_extended_id_1].position.pose.orientation.z = q.z();
                     Object1List.objects[object_3_extended_id_1].length = length;
                     Object1List.objects[object_3_extended_id_1].width = width;
+                    Object1List.objects[object_3_extended_id_1].height = (length + width)/2;
                     Object1List.objects[object_3_extended_id_1].orientation_angle = orientation_angle;
                     Object1List.objects[object_3_extended_id_1].class_type = class_type;
                     object_3_extended_id_1++;
@@ -775,6 +778,7 @@ bool radar_candrive::RecvCanMsgThread2(){
                     Object2List.objects[object_3_extended_id_2].position.pose.orientation.z = q.z();
                     Object2List.objects[object_3_extended_id_2].length = length;
                     Object2List.objects[object_3_extended_id_2].width = width;
+                    Object2List.objects[object_3_extended_id_2].height = (length + width)/2;
                     Object2List.objects[object_3_extended_id_2].orientation_angle = orientation_angle;
                     Object2List.objects[object_3_extended_id_2].class_type = class_type;
                     object_3_extended_id_2++;

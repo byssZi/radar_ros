@@ -199,7 +199,6 @@ add_dependencies(radar_filter_node  ${PROJECT_NAME}_generate_messages_cpp)
 
 add_executable(radar_combine_node 
   src/radar_combine.cpp
-  src/dbscan.cpp
 )
 target_link_libraries(radar_combine_node  ${catkin_LIBRARIES})
 add_dependencies(radar_combine_node  ${PROJECT_NAME}_generate_messages_cpp)
