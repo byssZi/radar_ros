@@ -66,7 +66,6 @@ add_message_files(
   ObjectList.msg
   Cluster.msg
   ClusterList.msg
-  Calib.msg
   Localization.msg
   Ins.msg
   ChassisReport.msg
@@ -187,7 +186,6 @@ add_executable(radar_ros_node
 target_link_libraries(radar_ros_node  ${catkin_LIBRARIES})
 add_dependencies(radar_ros_node  ${PROJECT_NAME}_generate_messages_cpp)
 
-
 add_executable(radar_filter_node 
   src/radar_filter.cpp
   src/function.cpp
@@ -196,20 +194,11 @@ add_executable(radar_filter_node
 target_link_libraries(radar_filter_node  ${catkin_LIBRARIES})
 add_dependencies(radar_filter_node  ${PROJECT_NAME}_generate_messages_cpp)
 
-
 add_executable(radar_combine_node 
   src/radar_combine.cpp
 )
 target_link_libraries(radar_combine_node  ${catkin_LIBRARIES})
 add_dependencies(radar_combine_node  ${PROJECT_NAME}_generate_messages_cpp)
-
-
-add_executable(calib_param_node 
-  src/calib_param.cpp
-)
-target_link_libraries(calib_param_node  ${catkin_LIBRARIES})
-add_dependencies(calib_param_node  ${PROJECT_NAME}_generate_messages_cpp)
-
 
 add_executable(dynamic_calib_node 
   src/dynamic_calib.cpp

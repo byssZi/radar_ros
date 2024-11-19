@@ -11,8 +11,6 @@
   </node>
   
   <group if="$(arg calib_radar)">
-  <node pkg="radar_ros" type="calib_param_node" name="param_calib" output="screen">
-  </node>
   <node pkg="radar_ros" type="dynamic_calib_node" name="visualize_calib" output="screen">
   </node>
   <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_visualize" output="screen">
